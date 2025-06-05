@@ -18,16 +18,15 @@ def bing_search():
         print("🔍 Received query:", query)
         print("🔐 Provided key:", access_key)
 
-        # ✅ 验证调用方传入的 key 是否和环境变量匹配
+        # ✅ 校验访问 key
         expected_key = os.environ.get("ALLOWED_PLUGIN_KEY", "your-secret-key")
         if access_key != expected_key:
-            print("❌ Invalid key access attempt.")
             return jsonify({
                 "error": "Access denied: invalid key.",
                 "results": []
             }), 403
 
-        # ✅ 读取 Bing API 的 key 和 endpoint
+        # ✅ 读取 Bing API 密钥
         subscription_key = os.environ.get("BING_SEARCH_V7_SUBSCRIPTION_KEY")
         if not subscription_key:
             raise Exception("Missing BING_SEARCH_V7_SUBSCRIPTION_KEY")
@@ -39,16 +38,18 @@ def bing_search():
             "User-Agent": "Coze-Agent/1.0"
         }
 
+        # ✅ 增强地域/语言/内容偏向：中文 + 中国境内
         params = {
             "q": query,
-            "mkt": "zh-CN",
-            "count": 5
+            "mkt": "zh-CN",        # 市场：简体中文 + 中国
+            "setLang": "zh-Hans",  # 语言偏好：简体中文
+            "cc": "CN",            # 国家代码：China
+            "count": 5             # 返回 5 条
         }
 
         response = requests.get(endpoint, headers=headers, params=params)
         print("📥 Bing API status:", response.status_code)
 
-        # 如果被限流，明确提示
         if response.status_code == 429:
             return jsonify({
                 "error": "请求过于频繁，请稍后再试（Bing API 限流）",
